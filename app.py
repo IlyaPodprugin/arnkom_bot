@@ -2,10 +2,10 @@ import telebot
 import config
 from telebot import types
 from config import TOKEN
-# from config import
 
 
 bot = telebot.TeleBot(TOKEN)
+
 first_question_keyboard = types.InlineKeyboardMarkup(row_width=1)
 first_question_buttons = [
     types.InlineKeyboardButton(text="В течение недели", callback_data="В течение недели"),
@@ -62,59 +62,50 @@ def any_msg(message):
 def callback_inline(call):
     if call.message:
         if call.data == "ready":
+            config.current_question = 1
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=config.first_question_txt,
                 reply_markup=first_question_keyboard
             )
-            config.current_question = 1
-            print(call.data)
         elif call.data == "previous":
             # config.current_question -= 1
             bot.send_message(call.message.chat.id, "The 'Previous question' btn has been pressed")
         elif config.current_question == 1:
             config.first_question_answer = call.data
+            config.current_question = 2
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=config.second_question_txt,
                 reply_markup=second_question_keyboard
             )
-            config.current_question = 2
-            print(call.data)
-            print(config.first_question_answer)
         elif config.current_question == 2:
             config.second_question_answer = call.data
+            config.current_question = 3
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=config.third_question_txt,
                 reply_markup=third_question_keyboard
             )
-            config.current_question = 3
-            print(call.data)
-            print(config.second_question_answer)
         elif config.current_question == 3:
             config.third_question_answer = call.data
+            config.current_question = 4
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=config.fourth_question_txt,
                 reply_markup=fourth_question_keyboard
             )
-            config.current_question = 4
-            print(call.data)
-            print(config.third_question_answer)
         else:
             config.fourth_question_answer = call.data
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text=config.goodbye
+                text=config.generate_goodbye()
             )
-            print(call.data)
-            print(config.fourth_question_answer)
 
 
 bot.polling()

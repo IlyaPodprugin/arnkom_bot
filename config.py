@@ -1,6 +1,6 @@
 TOKEN = "1334996670:AAHRRRLw0lujGopuDFLFvX84gL5R7DvD5hA"
 chat_id = ""
-greeting = """Здравствуйте, я бот Арнком, Ваш личный помошник.
+greeting = """Здравствуйте, я бот Арнком, Ваш личный помощник.
 Ответьте на 5 вопросов и менеджер позвонит Вам с выгодным предложением. 
 Если готовы - нажмите на кнопку.
 """
@@ -18,13 +18,13 @@ second_question_answer = ""
 third_question_answer = ""
 fourth_question_answer = ""
 fifth_question_answer = ""
-answers = []
+goodbye = ""
 
-goodbye = """
-1. {}
-2. {}
-3. {}
-4. {}
-5. ...
-Спасибо, досвидания""".format(first_question_answer, second_question_answer,
-                              third_question_answer, fourth_question_answer)
+
+def generate_goodbye():
+    global goodbye
+    goodbye = f"""1. {first_question_answer}
+2. {second_question_answer}
+3. {third_question_answer}
+4. {fourth_question_answer}"""
+    return goodbye
