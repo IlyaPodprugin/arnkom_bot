@@ -1,24 +1,41 @@
-TOKEN = "1334996670:AAHRRRLw0lujGopuDFLFvX84gL5R7DvD5hA"
 chat_id = ""
-
-current_question = 0
-first_question_answer = ""
-second_question_answer = ""
-third_question_answer = ""
-fourth_question_answer = ""
-fifth_question_answer = ""
-first_question_answers = ["В течение недели", "В течение месяца", "Через несколько месяцев", "Точных ориепнтиров нет"]
-goodbye = ""
 user_name = ""
 
+current_question = 1
+goodbye = ""
 greeting = ""
-quiz_start_phrase = "Чтож, начнём"
-first_question_txt = "Первый вопрос: Когда планируете снять офис?"
-second_question_txt = "Второй вопрос: Помещение какой площади вы рассматриваете?"
-third_question_txt = "Третий вопрос: На каком этаже должен располагаться офис?"
-fourth_question_txt = "Четвёртый вопрос: На какой срок собираетесь въезжать?"
-fifth_question_txt = "Пятый вопрос: Какие дополнительные параметры вам нужны?"
 something_went_wrong = "Что-то пошло не так. Чтобы начать диалог с ботом заново - отправьте комманду \"/start\""
+
+
+questions = {
+    1: {
+        "text": "1. Когда планируете снять офис?",
+        "answers": ["В течение недели", "В течение месяца", "Через несколько месяцев",
+                    "Точных ориепнтиров нет", "Вперёд >"]
+    },
+    2: {
+        "text": "2. Помещение какой площади вы рассматриваете?",
+        "answers": ["до 40м2", "40-60м2", "60-85м2", "85-120м2", "Более 120м2",
+                    "Рассмотрю все варианты", "< Назад", "Вперёд >"]
+    },
+    3: {
+        "text": "3. На каком этаже должен располагаться офис?",
+        "answers": ["1-10 этаж", "10-25 этаж", "25-45 этаж", "45-60 этаж",
+                    "Выше 60 этажа", "Этаж не важен", "< Назад", "Вперёд >"]
+    },
+    4: {
+        "text": "4. На какой срок собираетесь въезжать?",
+        "answers": ["1 месяц", "3-6 месяцев", "6-12 месяцев",
+                    "Более 12 месяцев", "< Назад", "Вперёд >"]
+    },
+    5: {
+        "text": "5. Какие дополнительные параметры вам нужны?",
+        "answers": ["Вид на город", "Скидка на паркинг", "Без ремонта", "Интернет по Wi-Fi",
+                    "Наличие мебели", "Возможность установки перегородок", "< Назад"]
+    }
+}
+
+answers = {}
 
 
 def generate_greeting():
@@ -32,8 +49,9 @@ def generate_greeting():
 
 def generate_goodbye():
     global goodbye
-    goodbye = f"""1. {first_question_answer}
-2. {second_question_answer}
-3. {third_question_answer}
-4. {fourth_question_answer}"""
+    goodbye = f"""1. {answers[1]}
+2. {answers[2]}
+3. {answers[3]}
+4. {answers[4]}
+5. {answers[5]}"""
     return goodbye

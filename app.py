@@ -1,133 +1,116 @@
 import telebot
 import config
+import os
+from dotenv import load_dotenv
 from telebot import types
 
+load_dotenv()
 
-bot = telebot.TeleBot(config.TOKEN)
+bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"), parse_mode="HTML")
 
 
 class Question:
 
-    def __init__(self, chat_id, text, answers, question_type, row_width):
-        self.row_width = row_width
-        self.chat_id = chat_id
+    def __init__(self, text, answers, question_type, _row_width_):
+        self._row_width_ = _row_width_
+        self.keyboard = types.InlineKeyboardMarkup(row_width=self._row_width_)
         self.text = text
         self.answers = answers
         self.question_type = question_type
 
-    def generate_message(self):
-        keyboard = types.InlineKeyboardMarkup(row_width=self.row_width)
+    def generate_keyboard(self):
         buttons = []
         for i in self.answers:
             buttons.append(types.InlineKeyboardButton(text=i, callback_data=i))
-        keyboard.add(*buttons)
-        bot.send_message(self.chat_id, self.text, parse_mode="HTML", reply_markup=keyboard)
+        self.keyboard.add(*buttons)
+
+    def send_generated_message(self):
+        bot.send_message(config.chat_id, self.text, reply_markup=self.keyboard)
 
 
-# first_question_keyboard1 = types.InlineKeyboardMarkup(row_width=1)
-# first_question_buttons1 = [
-#     types.InlineKeyboardButton(text="В течение недели", callback_data="В течение недели"),
-#     types.InlineKeyboardButton(text="В течение месяца", callback_data="В течение месяца"),
-#     types.InlineKeyboardButton(text="Через несколько месяцев", callback_data="Через несколько месяцев"),
-#     types.InlineKeyboardButton(text="Точных ориепнтиров нет", callback_data="Точных ориепнтиров нет")
-# ]
-# first_question_keyboard1.add(*first_question_buttons1)
-# print(first_question_keyboard1, "first_question_keyboard1")
-#
-# second_question_keyboard = types.InlineKeyboardMarkup(row_width=1)
-# second_question_buttons = [
-#     types.InlineKeyboardButton(text="до 40м2", callback_data="до 40м2"),
-#     types.InlineKeyboardButton(text="40-60м2", callback_data="40-60м2"),
-#     types.InlineKeyboardButton(text="60-85м2", callback_data="60-85м2"),
-#     types.InlineKeyboardButton(text="85-120м2", callback_data="85-120м2"),
-#     types.InlineKeyboardButton(text="Более 120м2", callback_data="Более 120м2"),
-#     types.InlineKeyboardButton(text="Рассмотрю все варианты", callback_data="Рассмотрю все варианты"),
-#     types.InlineKeyboardButton(text="🔙 Предыдущий вопрос", callback_data="previous")
-# ]
-# second_question_keyboard.add(*second_question_buttons)
-#
-# third_question_keyboard = types.InlineKeyboardMarkup(row_width=1)
-# third_question_buttons = [
-#     types.InlineKeyboardButton(text="1-10 этаж", callback_data="1-10 этаж"),
-#     types.InlineKeyboardButton(text="10-25 этаж", callback_data="10-25 этаж"),
-#     types.InlineKeyboardButton(text="25-45 этаж", callback_data="25-45 этаж"),
-#     types.InlineKeyboardButton(text="45-60 этаж", callback_data="45-60 этаж"),
-#     types.InlineKeyboardButton(text="Выше 60 этажа", callback_data="Выше 60 этажа"),
-#     types.InlineKeyboardButton(text="Этаж не важен", callback_data="Этаж не важен"),
-#     types.InlineKeyboardButton(text="Предыдущий вопрос", callback_data="previous")
-# ]
-# third_question_keyboard.add(*third_question_buttons)
-#
-# fourth_question_keyboard = types.InlineKeyboardMarkup(row_width=1)
-# fourth_question_buttons = [
-#     types.InlineKeyboardButton(text="1 месяц", callback_data="1 месяц"),
-#     types.InlineKeyboardButton(text="3-6 месяцев", callback_data="3-6 месяцев"),
-#     types.InlineKeyboardButton(text="6-12 месяцев", callback_data="6-12 месяцев"),
-#     types.InlineKeyboardButton(text="Более 12 месяцев", callback_data="Более 12 месяцев"),
-#     types.InlineKeyboardButton(text="Предыдущий вопрос", callback_data="previous")
-# ]
-# fourth_question_keyboard.add(*fourth_question_buttons)
-
-# Сделать возможность делать кастомный callback_data
-# Осуществить это можно так:
-# В функцию в качестве параметра передаётся массив словарей, где значение - текст сообщение, а ключ - callback_data
 @bot.message_handler(commands=["start"])
 def any_msg(message):
+    config.current_question = 1
     config.chat_id = message.chat.id
     config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
 
-    greeting = Question(config.chat_id, config.generate_greeting(), config.first_question_answers, "select", 1)
-    greeting.generate_message()
+    greeting = Question(config.generate_greeting(), ["Поехали"], "select", 1)
+    greeting.generate_keyboard()
+    greeting.send_generated_message()
 
 
-# @bot.callback_query_handler(func=lambda call: True)
-# def callback_inline(call):
-#     if call.data == "ready":
-#         config.current_question = 1
-#         bot.edit_message_text(
-#             chat_id=call.message.chat.id,
-#             message_id=call.message.message_id,
-#             text=config.first_question_txt,
-#             reply_markup=first_question_keyboard
-#         )
-#     else:
-#         if call.data == "previous":
-#             config.current_question -= 1
-#             # bot.send_message(call.message.chat.id, "The 'Previous question' btn has been pressed")
-#         elif config.current_question == 1:
-#             config.first_question_answer = call.data
-#             config.current_question = 2
-#             bot.edit_message_text(
-#                 chat_id=call.message.chat.id,
-#                 message_id=call.message.message_id,
-#                 text=config.second_question_txt,
-#                 reply_markup=second_question_keyboard
-#             )
-#         elif config.current_question == 2:
-#             config.second_question_answer = call.data
-#             config.current_question = 3
-#             bot.edit_message_text(
-#                 chat_id=call.message.chat.id,
-#                 message_id=call.message.message_id,
-#                 text=config.third_question_txt,
-#                 reply_markup=third_question_keyboard
-#             )
-#         elif config.current_question == 3:
-#             config.third_question_answer = call.data
-#             config.current_question = 4
-#             bot.edit_message_text(
-#                 chat_id=call.message.chat.id,
-#                 message_id=call.message.message_id,
-#                 text=config.fourth_question_txt,
-#                 reply_markup=fourth_question_keyboard
-#             )
-#         else:
-#             config.fourth_question_answer = call.data
-#             bot.edit_message_text(
-#                 chat_id=call.message.chat.id,
-#                 message_id=call.message.message_id,
-#                 text=config.generate_goodbye()
-#             )
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.data == "Поехали":
+        question = Question(config.questions[config.current_question]["text"],
+                            config.questions[config.current_question]["answers"], "select", 1)
+        question.generate_keyboard()
+        bot.edit_message_text(
+            chat_id=config.chat_id,
+            message_id=call.message.message_id,
+            text=config.questions[config.current_question]["text"],
+            reply_markup=question.keyboard
+        )
+        config.current_question = 2
+    else:
+        if call.data == "< Назад>":
+            config.current_question -= 1
+            # bot.send_message(call.message.chat.id, "The 'Previous question' btn has been pressed")
+        elif config.current_question == 2:
+            config.answers[config.current_question - 1] = call.data
+            question = Question(config.questions[config.current_question]["text"],
+                                config.questions[config.current_question]["answers"], "select", 1)
+            question.generate_keyboard()
+            bot.edit_message_text(
+                chat_id=config.chat_id,
+                message_id=call.message.message_id,
+                text=config.questions[config.current_question]["text"],
+                reply_markup=question.keyboard
+            )
+            config.current_question = 3
+        elif config.current_question == 3:
+            config.answers[config.current_question - 1] = call.data
+            question = Question(config.questions[config.current_question]["text"],
+                                config.questions[config.current_question]["answers"], "select", 1)
+            question.generate_keyboard()
+            bot.edit_message_text(
+                chat_id=config.chat_id,
+                message_id=call.message.message_id,
+                text=config.questions[config.current_question]["text"],
+                reply_markup=question.keyboard
+            )
+            config.current_question = 4
+        elif config.current_question == 4:
+            config.answers[config.current_question - 1] = call.data
+            question = Question(config.questions[config.current_question]["text"],
+                                config.questions[config.current_question]["answers"], "select", 1)
+            question.generate_keyboard()
+            bot.edit_message_text(
+                chat_id=config.chat_id,
+                message_id=call.message.message_id,
+                text=config.questions[config.current_question]["text"],
+                reply_markup=question.keyboard
+            )
+            config.current_question = 5
+        elif config.current_question == 5:
+            config.answers[config.current_question - 1] = call.data
+            question = Question(config.questions[config.current_question]["text"],
+                                config.questions[config.current_question]["answers"], "select", 1)
+            question.generate_keyboard()
+            bot.edit_message_text(
+                chat_id=config.chat_id,
+                message_id=call.message.message_id,
+                text=config.questions[config.current_question]["text"],
+                reply_markup=question.keyboard
+            )
+            config.current_question = 6
+        else:
+            config.answers[config.current_question - 1] = call.data
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=config.generate_goodbye()
+            )
 
 
 bot.polling()
