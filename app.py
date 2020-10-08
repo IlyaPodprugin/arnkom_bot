@@ -7,8 +7,8 @@ bot = telebot.TeleBot(config.TOKEN)
 
 
 class Question:
+
     def __init__(self, chat_id, text, answers, question_type, row_width):
-        # self.keyboard_name = keyboard_name
         self.row_width = row_width
         self.chat_id = chat_id
         self.text = text
@@ -23,19 +23,6 @@ class Question:
         keyboard.add(*buttons)
         bot.send_message(self.chat_id, self.text, parse_mode="HTML", reply_markup=keyboard)
 
-
-# @bot.message_handler(commands="start")
-# def send_message(message):
-#     first_question = QuestionGenerator(message.chat.id,
-#                                        "To be or not to be?",
-#                                        4,
-#                                        ["to be", "not to be", "be to", "be to not"],
-#                                        "select",
-#                                        1
-#                                        )
-#     first_question.generate_message()
-    # print(type(first_question.keyboard), first_question)
-    # print(first_question.text, first_question.num_of_answers, first_question.answers, first_question.question_type)
 
 # first_question_keyboard1 = types.InlineKeyboardMarkup(row_width=1)
 # first_question_buttons1 = [
@@ -88,9 +75,8 @@ class Question:
 def any_msg(message):
     config.chat_id = message.chat.id
     config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
+
     greeting = Question(config.chat_id, config.generate_greeting(), config.first_question_answers, "select", 1)
-    first_question = Question(config.chat_id, config.generate_greeting(),
-                                       config.first_question_answers, "select", 1)
     greeting.generate_message()
 
 
