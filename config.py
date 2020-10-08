@@ -2,7 +2,7 @@ chat_id = ""
 user_name = ""
 
 current_question = 1
-goodbye = ""
+goodbye = "git"
 greeting = ""
 something_went_wrong = "Что-то пошло не так. Чтобы начать диалог с ботом заново - отправьте комманду \"/start\""
 
