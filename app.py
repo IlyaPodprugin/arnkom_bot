@@ -42,21 +42,27 @@ def any_msg(message):
 
 @bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["answers"])
 def question_message(call):
-    # if call.data == "< Назад":
-    #     config.current_question -= 1
-    if config.current_question < 5:
-        if config.current_question != 0:
-            config.answers[config.current_question] = call.data
-        config.current_question += 1
+    if call.data == "< Назад":
+        config.current_question -= 1
         question = Question(config.questions[config.current_question]["text"],
                             config.questions[config.current_question]["answers"], "select", 1)
         question.generate_keyboard()
         bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-    else:
-        config.answers[config.current_question] = call.data
-        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
-                              text=config.generate_goodbye())
+    if call.data == "Вперёд >" or call.data == "Поехали":
+        if config.current_question < 5:
+            if config.current_question != 0:
+                config.answers[config.current_question] = call.data
+            config.current_question += 1
+            question = Question(config.questions[config.current_question]["text"],
+                                config.questions[config.current_question]["answers"], "select", 1)
+            question.generate_keyboard()
+            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                                  text=question.text, reply_markup=question.keyboard)
+        else:
+            config.answers[config.current_question] = call.data
+            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                                  text=config.generate_goodbye())
 
 
 bot.polling()
