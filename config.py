@@ -1,13 +1,36 @@
 chat_id = ""
 user_name = ""
 
-current_question = 1
+current_question = 0
 goodbye = "git"
 greeting = ""
 something_went_wrong = "Что-то пошло не так. Чтобы начать диалог с ботом заново - отправьте комманду \"/start\""
 
 
+def generate_greeting():
+    global greeting
+    greeting = f"""<b>Здравствуйте</b>, {user_name}, я бот Арнком, Ваш личный помощник.
+Ответьте на 5 вопросов и менеджер позвонит Вам с выгодным предложением. 
+Если готовы - нажмите на кнопку.
+"""
+    return greeting
+
+
+def generate_goodbye():
+    global goodbye
+    goodbye = f"""1. {answers[1]}
+2. {answers[2]}
+3. {answers[3]}
+4. {answers[4]}
+5. {answers[5]}"""
+    return goodbye
+
+
 questions = {
+    0: {
+        "text": "",
+        "answers": ["Поехали"]
+    },
     1: {
         "text": "1. Когда планируете снять офис?",
         "answers": ["В течение недели", "В течение месяца", "Через несколько месяцев",
@@ -36,22 +59,3 @@ questions = {
 }
 
 answers = {}
-
-
-def generate_greeting():
-    global greeting
-    greeting = f"""<b>Здравствуйте</b>, {user_name}, я бот Арнком, Ваш личный помощник.
-Ответьте на 5 вопросов и менеджер позвонит Вам с выгодным предложением. 
-Если готовы - нажмите на кнопку.
-"""
-    return greeting
-
-
-def generate_goodbye():
-    global goodbye
-    goodbye = f"""1. {answers[1]}
-2. {answers[2]}
-3. {answers[3]}
-4. {answers[4]}
-5. {answers[5]}"""
-    return goodbye

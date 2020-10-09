@@ -30,87 +30,33 @@ class Question:
 
 @bot.message_handler(commands=["start"])
 def any_msg(message):
-    config.current_question = 1
+    config.current_question = 0
     config.chat_id = message.chat.id
     config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
+    config.questions[config.current_question]["text"] = config.generate_greeting()
 
     greeting = Question(config.generate_greeting(), ["Поехали"], "select", 1)
     greeting.generate_keyboard()
     greeting.send_generated_message()
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
-    if call.data == "Поехали":
+@bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["answers"])
+def question_message(call):
+    # if call.data == "< Назад":
+    #     config.current_question -= 1
+    if config.current_question < 5:
+        if config.current_question != 0:
+            config.answers[config.current_question] = call.data
+        config.current_question += 1
         question = Question(config.questions[config.current_question]["text"],
                             config.questions[config.current_question]["answers"], "select", 1)
         question.generate_keyboard()
-        bot.edit_message_text(
-            chat_id=config.chat_id,
-            message_id=call.message.message_id,
-            text=config.questions[config.current_question]["text"],
-            reply_markup=question.keyboard
-        )
-        config.current_question = 2
+        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
     else:
-        if call.data == "< Назад>":
-            config.current_question -= 1
-            # bot.send_message(call.message.chat.id, "The 'Previous question' btn has been pressed")
-        elif config.current_question == 2:
-            config.answers[config.current_question - 1] = call.data
-            question = Question(config.questions[config.current_question]["text"],
-                                config.questions[config.current_question]["answers"], "select", 1)
-            question.generate_keyboard()
-            bot.edit_message_text(
-                chat_id=config.chat_id,
-                message_id=call.message.message_id,
-                text=config.questions[config.current_question]["text"],
-                reply_markup=question.keyboard
-            )
-            config.current_question = 3
-        elif config.current_question == 3:
-            config.answers[config.current_question - 1] = call.data
-            question = Question(config.questions[config.current_question]["text"],
-                                config.questions[config.current_question]["answers"], "select", 1)
-            question.generate_keyboard()
-            bot.edit_message_text(
-                chat_id=config.chat_id,
-                message_id=call.message.message_id,
-                text=config.questions[config.current_question]["text"],
-                reply_markup=question.keyboard
-            )
-            config.current_question = 4
-        elif config.current_question == 4:
-            config.answers[config.current_question - 1] = call.data
-            question = Question(config.questions[config.current_question]["text"],
-                                config.questions[config.current_question]["answers"], "select", 1)
-            question.generate_keyboard()
-            bot.edit_message_text(
-                chat_id=config.chat_id,
-                message_id=call.message.message_id,
-                text=config.questions[config.current_question]["text"],
-                reply_markup=question.keyboard
-            )
-            config.current_question = 5
-        elif config.current_question == 5:
-            config.answers[config.current_question - 1] = call.data
-            question = Question(config.questions[config.current_question]["text"],
-                                config.questions[config.current_question]["answers"], "select", 1)
-            question.generate_keyboard()
-            bot.edit_message_text(
-                chat_id=config.chat_id,
-                message_id=call.message.message_id,
-                text=config.questions[config.current_question]["text"],
-                reply_markup=question.keyboard
-            )
-            config.current_question = 6
-        else:
-            config.answers[config.current_question - 1] = call.data
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text=config.generate_goodbye()
-            )
+        config.answers[config.current_question] = call.data
+        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                              text=config.generate_goodbye())
 
 
 bot.polling()
