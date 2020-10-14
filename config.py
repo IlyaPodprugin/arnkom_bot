@@ -6,6 +6,7 @@ is_selected = False
 goodbye = ""
 greeting = ""
 something_went_wrong = "Что-то пошло не так. Чтобы начать диалог с ботом заново - отправьте комманду \"/start\""
+didnt_pick = "Вы ничего не выбрали. Выберите вариант, подходящий Вам и нажмите кнопку \"Вперёд\""
 
 
 def generate_greeting():

@@ -63,12 +63,19 @@ def any_msg(message):
 def buttons_callback(call):
     if call.data == "< Назад":
         config.current_question -= 1
-    elif call.data == "Вперёд >" or call.data == "Поехали":
-        if config.current_question < 5:
-            config.current_question += 1
+    elif call.data == "Поехали":
+        config.current_question += 1
+        # bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
+    elif call.data == "Вперёд >":
+        if config.answers[config.current_question] != "":
+            if config.current_question < 5:
+                config.current_question += 1
+            else:
+                bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                                      text=config.generate_goodbye())
+                return
         else:
-            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
-                                  text=config.generate_goodbye())
+            bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
             return
 
     question = Question("select",
