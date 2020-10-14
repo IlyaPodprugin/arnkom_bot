@@ -12,18 +12,14 @@ bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"), parse_mode="HTML")
 class Question:
 
     def __init__(self, question_type, text, buttons, answers=None, call_data=None):
-        self.keyboard = types.InlineKeyboardMarkup()
         self.text = text
-        if answers is not None:
-            self.answers = answers
-        else:
-            self.answers = []
-        if call_data is not None:
-            self.call_data = call_data
-        else:
-            self.call_data = []
-        self.buttons = buttons
         self.question_type = question_type
+
+        self.keyboard = types.InlineKeyboardMarkup()
+        self.buttons = buttons
+
+        self.answers = [] if answers is None else answers
+        self.call_data = [] if call_data is None else call_data
 
     def generate_keyboard(self):
         buttons_row = []
@@ -65,7 +61,7 @@ def buttons_callback(call):
         config.current_question -= 1
     elif call.data == "Поехали":
         config.current_question += 1
-        # bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
+        bot.answer_callback_query(callback_query_id=call.id, text=config.hint_message, show_alert=True)
     elif call.data == "Вперёд >":
         if config.answers[config.current_question] != "":
             if config.current_question < 5:
