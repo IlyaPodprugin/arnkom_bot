@@ -22,25 +22,45 @@ class Question:
         self.call_data = [] if call_data is None else call_data
 
     def generate_keyboard(self):
+        self.keyboard.keyboard.clear()
         buttons_row = []
         if len(self.answers) == 0:
             pass
         else:
-            for i in self.answers:
-                if i == self.call_data:
-                    row = list()
-                    row.append(types.InlineKeyboardButton(text="* " + i, callback_data=i))
-                    self.keyboard.add(*row)
-                else:
-                    row = list()
-                    row.append(types.InlineKeyboardButton(text=i, callback_data=i))
-                    self.keyboard.add(*row)
+            if self.question_type == "select":
+                for i in self.answers:
+                    if i == self.call_data:
+                        row = list()
+                        row.append(types.InlineKeyboardButton(text="* " + i, callback_data=i))
+                        self.keyboard.add(*row)
+                    else:
+                        row = list()
+                        row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+                        self.keyboard.add(*row)
+            elif self.question_type == "checkbox":
+                for i in self.answers:
+                    if i in self.call_data:
+                        row = list()
+                        row.append(types.InlineKeyboardButton(text="* " + i, callback_data=i))
+                        self.keyboard.add(*row)
+                    else:
+                        row = list()
+                        row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+                        self.keyboard.add(*row)
         for i in self.buttons:
             buttons_row.append(types.InlineKeyboardButton(text=i, callback_data=i))
         self.keyboard.add(*buttons_row)
+        print()
+        return self.keyboard
 
     def send_generated_message(self):
         bot.send_message(config.chat_id, self.text, reply_markup=self.keyboard)
+
+
+question = Question("select",
+                    config.questions[config.current_question]["text"],
+                    config.questions[config.current_question]["buttons"],
+                    config.questions[config.current_question]["answers"])
 
 
 @bot.message_handler(commands=["start"])
@@ -48,11 +68,16 @@ def any_msg(message):
     config.current_question = 0
     config.chat_id = message.chat.id
     config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
-    config.questions[config.current_question]["text"] = config.generate_greeting()
+    greeting = f"""
+<b>Здравствуйте</b>, {config.user_name}, я бот Арнком, Ваш личный помощник. 
+Ответьте на 5 вопросов и менеджер позвонит Вам с выгодным предложением. 
+Если готовы - нажмите на кнопку.
+    """
 
-    greeting = Question("select", config.generate_greeting(), ["Поехали"])
-    greeting.generate_keyboard()
-    greeting.send_generated_message()
+    question.text = greeting
+    question.buttons = config.questions[config.current_question]["buttons"]
+    question.keyboard = question.generate_keyboard()
+    question.send_generated_message()
 
 
 @bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["buttons"])
@@ -63,7 +88,7 @@ def buttons_callback(call):
         config.current_question += 1
         bot.answer_callback_query(callback_query_id=call.id, text=config.hint_message, show_alert=True)
     elif call.data == "Вперёд >":
-        if config.answers[config.current_question] != "":
+        if config.user_answers[config.current_question] != "":
             if config.current_question < 5:
                 config.current_question += 1
             else:
@@ -74,29 +99,36 @@ def buttons_callback(call):
             bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
             return
 
-    question = Question("select",
-                        config.questions[config.current_question]["text"],
-                        config.questions[config.current_question]["buttons"],
-                        config.questions[config.current_question]["answers"])
-    question.generate_keyboard()
+    question.text = config.questions[config.current_question]["text"]
+    question.buttons = config.questions[config.current_question]["buttons"]
+    question.answers = config.questions[config.current_question]["answers"]
+    question.keyboard = question.generate_keyboard()
     bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
                           text=question.text, reply_markup=question.keyboard)
 
 
 @bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["answers"])
 def answers_callback(call):
-    if call.data in config.answers[config.current_question]:
-        return
-    else:
-        config.answers[config.current_question] = call.data
-        question = Question("select",
-                            config.questions[config.current_question]["text"],
-                            config.questions[config.current_question]["buttons"],
-                            config.questions[config.current_question]["answers"],
-                            call.data)
-        question.generate_keyboard()
+    if config.current_question == 5:
+        question.question_type = "checkbox"
+        if call.data in config.user_answers[config.current_question]:
+            config.user_answers[config.current_question].remove(call.data)
+        else:
+            config.user_answers[config.current_question].append(call.data)
+
+        question.call_data = config.user_answers[config.current_question]
+        question.keyboard = question.generate_keyboard()
         bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
+    else:
+        if call.data in config.user_answers[config.current_question]:
+            return
+        else:
+            config.user_answers[config.current_question] = call.data
+            question.call_data = call.data
+            question.keyboard = question.generate_keyboard()
+            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                                  text=question.text, reply_markup=question.keyboard)
 
 
 bot.polling()
