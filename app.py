@@ -31,21 +31,21 @@ class Question:
                 for i in self.answers:
                     if i == self.call_data:
                         row = list()
-                        row.append(types.InlineKeyboardButton(text="* " + i, callback_data=i))
+                        row.append(types.InlineKeyboardButton(text=f"\U0001F518 {i}", callback_data=i))
                         self.keyboard.add(*row)
                     else:
                         row = list()
-                        row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+                        row.append(types.InlineKeyboardButton(text=f"\U000026AA {i}", callback_data=i))
                         self.keyboard.add(*row)
             elif self.question_type == "checkbox":
                 for i in self.answers:
                     if i in self.call_data:
                         row = list()
-                        row.append(types.InlineKeyboardButton(text="* " + i, callback_data=i))
+                        row.append(types.InlineKeyboardButton(text=f"\U00002705 {i}", callback_data=i))
                         self.keyboard.add(*row)
                     else:
                         row = list()
-                        row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+                        row.append(types.InlineKeyboardButton(text=f"\U00002B1C {i}", callback_data=i))
                         self.keyboard.add(*row)
         for i in self.buttons:
             buttons_row.append(types.InlineKeyboardButton(text=i, callback_data=i))
@@ -69,9 +69,9 @@ def any_msg(message):
     config.chat_id = message.chat.id
     config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
     greeting = f"""
-<b>Здравствуйте</b>, {config.user_name}, я бот Арнком, Ваш личный помощник. 
-Ответьте на 5 вопросов и менеджер позвонит Вам с выгодным предложением. 
-Если готовы - нажмите на кнопку.
+Здравствуйте, {config.user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
+Ответьте на <b>5 вопросов</b> и менеджер подберёт <b>идеально подходящее Вам</b> предложение.\n
+Если готовы - <b>нажмите на кнопку</b>.
     """
 
     question.text = greeting
@@ -91,6 +91,8 @@ def buttons_callback(call):
         if config.user_answers[config.current_question] != "":
             if config.current_question < 5:
                 config.current_question += 1
+                if config.current_question == 5:
+                    question.question_type = "checkbox"
             else:
                 bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
                                       text=config.generate_goodbye())
