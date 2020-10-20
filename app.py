@@ -48,7 +48,12 @@ class Question:
                         row.append(types.InlineKeyboardButton(text=f"\U00002B1C {i}", callback_data=i))
                         self.keyboard.add(*row)
         for i in self.buttons:
-            buttons_row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+            if i == "Вперёд":
+                buttons_row.append(types.InlineKeyboardButton(text=f"\U000021AA {i}", callback_data=i))
+            elif i == "Назад":
+                buttons_row.append(types.InlineKeyboardButton(text=f"\U000021A9 {i}", callback_data=i))
+            else:
+                buttons_row.append(types.InlineKeyboardButton(text=i, callback_data=i))
         self.keyboard.add(*buttons_row)
         print()
         return self.keyboard
@@ -82,12 +87,12 @@ def any_msg(message):
 
 @bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["buttons"])
 def buttons_callback(call):
-    if call.data == "< Назад":
+    if call.data == "Назад":
         config.current_question -= 1
     elif call.data == "Поехали":
         config.current_question += 1
         bot.answer_callback_query(callback_query_id=call.id, text=config.hint_message, show_alert=True)
-    elif call.data == "Вперёд >":
+    elif call.data == "Вперёд":
         if config.user_answers[config.current_question] != "":
             if config.current_question < 5:
                 config.current_question += 1
