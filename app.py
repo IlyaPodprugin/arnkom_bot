@@ -27,7 +27,7 @@ class Question:
         self.keyboard.keyboard.clear()
         self.btn_row.clear()
         self.answer_row.clear()
-        print("Check:\n" + Question.check(self))
+        print("Check:\n" + self.check())
         if len(self.answers) == 0:
             pass
         else:
@@ -41,6 +41,10 @@ class Question:
                         self.answer_row.append(types.InlineKeyboardButton(text=f"\U000026AA {i}", callback_data=i))
                         self.keyboard.add(*self.answer_row)
                         self.answer_row.clear()
+                self.btn_row.append(types.InlineKeyboardButton(text=f"\U000021A9 {self.buttons[0]}", callback_data=self.buttons[0]))
+                self.keyboard.add(*self.btn_row)
+                return self.keyboard
+
             elif self.question_type == "checkbox":
                 for i in self.answers:
                     if i in self.call_data:
@@ -51,13 +55,14 @@ class Question:
                         self.answer_row.append(types.InlineKeyboardButton(text=f"\U00002B1C {i}", callback_data=i))
                         self.keyboard.add(*self.answer_row)
                         self.answer_row.clear()
-        for i in self.buttons:
-            if i == "Вперёд":
-                self.btn_row.append(types.InlineKeyboardButton(text=f"\U000021AA {i}", callback_data=i))
-            elif i == "Назад":
-                self.btn_row.append(types.InlineKeyboardButton(text=f"\U000021A9 {i}", callback_data=i))
-            else:
-                self.btn_row.append(types.InlineKeyboardButton(text=i, callback_data=i))
+                for i in self.buttons:
+                    if i == "Вперёд":
+                        self.btn_row.append(types.InlineKeyboardButton(text=f"\U000021AA {i}", callback_data=i))
+                    elif i == "Назад":
+                        self.btn_row.append(types.InlineKeyboardButton(text=f"\U000021A9 {i}", callback_data=i))
+                self.keyboard.add(*self.btn_row)
+                return self.keyboard
+        self.btn_row.append(types.InlineKeyboardButton(text=self.buttons[0], callback_data=self.buttons[0]))
         self.keyboard.add(*self.btn_row)
         return self.keyboard
 
@@ -70,6 +75,7 @@ Buttons: {self.btn_row}
 Answer row: {self.answer_row}
 Keyboard: {self.keyboard}
 Keyboard components: {self.keyboard.keyboard}
+Current qstn: {config.current_question}
 ---------------------------------------------------------------\n""")
 
     def send_generated_message(self):
@@ -111,34 +117,43 @@ def buttons_callback(call):
         config.current_question -= 1
     elif call.data == "Поехали":
         config.current_question += 1
-        bot.answer_callback_query(callback_query_id=call.id, text=config.hint_message, show_alert=True)
     elif call.data == "Вперёд":
-        if config.user_answers[config.current_question] != "":
-            if config.current_question < 5:
-                config.current_question += 1
-                if config.current_question == 5:
-                    question.question_type = "checkbox"
-            else:
-                bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
-                                      text=config.generate_goodbye())
-                print(question.check())
-                return
-        else:
+        if config.user_answers[config.current_question] == "":
             bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
             return
+        else:
+            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                                  text=config.generate_goodbye())
+            print(question.check())
+            return
 
-    question.text = config.questions[config.current_question]["text"]
-    question.buttons = config.questions[config.current_question]["buttons"]
-    question.answers = config.questions[config.current_question]["answers"]
-    question.keyboard = question.generate_keyboard()
-    bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
-                          text=question.text, reply_markup=question.keyboard)
-    print(question.check())
+    if config.current_question != 0:
+        question.question_type = "select"
+        question.call_data = config.user_answers[config.current_question]
+        question.text = config.questions[config.current_question]["text"]
+        question.buttons = config.questions[config.current_question]["buttons"]
+        question.answers = config.questions[config.current_question]["answers"]
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+        print(question.check())
+    else:
+        question.text = config.greeting
+        question.buttons = config.questions[config.current_question]["buttons"]
+        question.answers = []
+        question.call_data = []
+        question.question_type = "select"
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+        print(question.check())
 
 
 @bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["answers"])
 def answers_callback(call):
     if config.current_question == 5:
+
+        # Adding and remove picked and unpicked answers from a list
         if call.data in config.user_answers[config.current_question]:
             config.user_answers[config.current_question].remove(call.data)
         else:
@@ -149,15 +164,21 @@ def answers_callback(call):
         bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
     else:
-        if call.data in config.user_answers[config.current_question]:
-            return
+        config.user_answers[config.current_question] = call.data
+        config.current_question += 1
+        if config.current_question == 5:
+            question.question_type = "checkbox"
         else:
-            config.user_answers[config.current_question] = call.data
-            question.call_data = call.data
-            question.keyboard = question.generate_keyboard()
-            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
-                                  text=question.text, reply_markup=question.keyboard)
-            print(question.check())
+            question.question_type = "select"
+
+        question.call_data = call.data
+        question.text = config.questions[config.current_question]["text"]
+        question.buttons = config.questions[config.current_question]["buttons"]
+        question.answers = config.questions[config.current_question]["answers"]
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+        print(question.check())
 
 
 bot.infinity_polling()
