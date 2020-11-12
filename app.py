@@ -9,6 +9,69 @@ load_dotenv()
 bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"), parse_mode="HTML")
 
 
+class Store:
+    questions = [
+        {
+            "text": "",
+            "answers": "",
+            "buttons": ["Поехали"]
+        },
+        {
+            "text": "<b>1 из 5:</b> Когда планируете снять офис?",
+            "answers": ["В течение недели", "В течение месяца", "Через несколько месяцев",
+                        "Точных ориентиров нет"],
+            "buttons": ["Назад"]
+        },
+        {
+            "text": "<b>2 из 5:</b> Помещение какой площади вы рассматриваете?",
+            "answers": ["до 40м2", "40-60м2", "60-85м2", "85-120м2", "Более 120м2",
+                        "Рассмотрю все варианты"],
+            "buttons": ["Назад"]
+        },
+        {
+            "text": "<b>3 из 5:</b> На каком этаже должен располагаться офис?",
+            "answers": ["1-10 этаж", "10-25 этаж", "25-45 этаж", "45-60 этаж",
+                        "Выше 60 этажа", "Этаж не важен"],
+            "buttons": ["Назад"]
+        },
+        {
+            "text": "<b>4 из 5:</b> На какой срок собираетесь въезжать?",
+            "answers": ["1 месяц", "3-6 месяцев", "6-12 месяцев",
+                        "Более 12 месяцев"],
+            "buttons": ["Назад"]
+        },
+        {
+            "text": "<b>5 из 5:</b> Какие дополнительные параметры вам нужны?",
+            "answers": ["Вид на город", "Скидка на паркинг", "Без ремонта", "Интернет по Wi-Fi",
+                        "Наличие мебели", "Возможность установки перегородок"],
+            "buttons": ["Назад", "Вперёд"]
+        }
+    ]
+
+    def __init__(self):
+        self.chat__id = ""
+        self.current_question = 0
+        self.user_name = ""
+
+        self.user_answers = {
+            1: "",
+            2: "",
+            3: "",
+            4: "",
+            5: [],
+        }
+
+    # This func gets data from the database and rewrites the "question" variable to use it when work with keyboards
+    def get_questions(self):
+        pass
+
+    def inc_question(self):
+        pass
+
+    def dec_question(self):
+        pass
+
+
 class Question:
 
     def __init__(self, question_type, text, buttons, answers=None, call_data=None):
@@ -22,6 +85,9 @@ class Question:
 
         self.answers = [] if answers else answers
         self.call_data = [] if call_data else call_data
+
+    def get_info(self):
+        pass
 
     def generate_keyboard(self):
         self.keyboard.keyboard.clear()
@@ -82,27 +148,29 @@ Current qstn: {config.current_question}
         bot.send_message(config.chat_id, self.text, reply_markup=self.keyboard)
 
 
+store = Store()
+
 question = Question("select",
-                    config.questions[config.current_question]["text"],
-                    config.questions[config.current_question]["buttons"],
-                    config.questions[config.current_question]["answers"])
+                    store.questions[store.current_question]["text"],
+                    store.questions[store.current_question]["buttons"],
+                    store.questions[store.current_question]["answers"])
 
 print(question.check())
 
 
 @bot.message_handler(commands=["start"])
-def any_msg(message):
-    config.current_question = 0
-    config.chat_id = message.chat.id
-    config.user_name = f"{message.chat.first_name} {message.chat.last_name}"
+def start_msg(message):
+    store.current_question = 0
+    store.chat_id = message.chat.id
+    store.user_name = f"{message.chat.first_name} {message.chat.last_name}"
     greeting = f"""
-Здравствуйте, {config.user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
+Здравствуйте, {store.user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
 Ответьте на <b>5 вопросов</b> и менеджер подберёт <b>идеально подходящее Вам</b> предложение.\n
 Если готовы - <b>нажмите на кнопку</b>.
     """
 
     question.text = greeting
-    question.buttons = config.questions[config.current_question]["buttons"]
+    question.buttons = config.questions[question.current_question]["buttons"]
     question.answers = []
     question.call_data = []
     question.question_type = "select"
@@ -111,14 +179,14 @@ def any_msg(message):
     print(question.check())
 
 
-@bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["buttons"])
+@bot.callback_query_handler(lambda call: call.data in config.questions[question.current_question]["buttons"])
 def buttons_callback(call):
     if call.data == "Назад":
-        config.current_question -= 1
+        question.current_question -= 1
     elif call.data == "Поехали":
-        config.current_question += 1
+        question.current_question += 1
     elif call.data == "Вперёд":
-        if config.user_answers[config.current_question] == "":
+        if config.user_answers[question.current_question] == "":
             bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
             return
         else:
