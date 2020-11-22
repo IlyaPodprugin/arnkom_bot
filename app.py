@@ -10,6 +10,7 @@ bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"), parse_mode="HTML")
 
 
 class Store:
+    messages = []
     questions = [
         {
             "text": "",
@@ -49,7 +50,7 @@ class Store:
     ]
 
     def __init__(self):
-        self.chat__id = ""
+        self.chat_id = ""
         self.current_question = 0
         self.user_name = ""
 
@@ -65,10 +66,19 @@ class Store:
     def get_questions(self):
         pass
 
-    def inc_question(self):
+    def get_user(self):
         pass
 
+    def set_user(self):
+        pass
+
+    def inc_question(self):
+        self.current_question += 1
+
     def dec_question(self):
+        self.current_question -= 1
+
+    def edit_message(self):
         pass
 
 
@@ -141,21 +151,20 @@ Buttons: {self.btn_row}
 Answer row: {self.answer_row}
 Keyboard: {self.keyboard}
 Keyboard components: {self.keyboard.keyboard}
-Current qstn: {config.current_question}
+Current question: {store.current_question}
 ---------------------------------------------------------------\n""")
 
     def send_generated_message(self):
-        bot.send_message(config.chat_id, self.text, reply_markup=self.keyboard)
+        bot.send_message(store.chat_id, self.text, reply_markup=self.keyboard)
 
 
 store = Store()
-
 question = Question("select",
                     store.questions[store.current_question]["text"],
                     store.questions[store.current_question]["buttons"],
                     store.questions[store.current_question]["answers"])
 
-print(question.check())
+# print(question.check())
 
 
 @bot.message_handler(commands=["start"])
@@ -170,83 +179,90 @@ def start_msg(message):
     """
 
     question.text = greeting
-    question.buttons = config.questions[question.current_question]["buttons"]
+    question.buttons = store.questions[store.current_question]["buttons"]
     question.answers = []
     question.call_data = []
     question.question_type = "select"
     question.keyboard = question.generate_keyboard()
     question.send_generated_message()
-    print(question.check())
+    print(f"message: {message}")
+    # print(question.check())
 
 
-@bot.callback_query_handler(lambda call: call.data in config.questions[question.current_question]["buttons"])
+@bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["buttons"])
 def buttons_callback(call):
     if call.data == "Назад":
-        question.current_question -= 1
+        store.current_question -= 1
     elif call.data == "Поехали":
-        question.current_question += 1
+        store.current_question += 1
     elif call.data == "Вперёд":
-        if config.user_answers[question.current_question] == "":
+        if store.user_answers[store.current_question] == "":
             bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
             return
         else:
-            bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+            bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
                                   text=config.generate_goodbye())
-            print(question.check())
+            print(f"call.message: {call.message}")
+            # print(question.check())
             return
 
-    if config.current_question != 0:
+    if store.current_question != 0:
         question.question_type = "select"
-        question.call_data = config.user_answers[config.current_question]
-        question.text = config.questions[config.current_question]["text"]
-        question.buttons = config.questions[config.current_question]["buttons"]
-        question.answers = config.questions[config.current_question]["answers"]
+        question.call_data = store.user_answers[store.current_question]
+        question.text = store.questions[store.current_question]["text"]
+        question.buttons = store.questions[store.current_question]["buttons"]
+        question.answers = store.questions[store.current_question]["answers"]
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-        print(question.check())
+        print(f"call.message: {call.message}")
+        # print(question.check())
     else:
         question.text = config.greeting
-        question.buttons = config.questions[config.current_question]["buttons"]
+        question.buttons = store.questions[store.current_question]["buttons"]
         question.answers = []
         question.call_data = []
         question.question_type = "select"
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-        print(question.check())
+        print(f"call.message: {call.message}")
+        # print(question.check())
 
 
-@bot.callback_query_handler(lambda call: call.data in config.questions[config.current_question]["answers"])
+@bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["answers"])
 def answers_callback(call):
-    if config.current_question == 5:
+    if store.current_question == 5:
 
         # Adding and remove picked and unpicked answers from a list
-        if call.data in config.user_answers[config.current_question]:
-            config.user_answers[config.current_question].remove(call.data)
+        if call.data in store.user_answers[store.current_question]:
+            store.user_answers[store.current_question].remove(call.data)
         else:
-            config.user_answers[config.current_question].append(call.data)
+            store.user_answers[store.current_question].append(call.data)
 
-        question.call_data = config.user_answers[config.current_question]
+        question.call_data = store.user_answers[store.current_question]
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
+        print(f"call.message: {call.message}")
     else:
-        config.user_answers[config.current_question] = call.data
-        config.current_question += 1
-        if config.current_question == 5:
+        store.user_answers[store.current_question] = call.data
+        store.current_question += 1
+        if store.current_question == 5:
             question.question_type = "checkbox"
         else:
             question.question_type = "select"
 
         question.call_data = call.data
-        question.text = config.questions[config.current_question]["text"]
-        question.buttons = config.questions[config.current_question]["buttons"]
-        question.answers = config.questions[config.current_question]["answers"]
+        question.text = store.questions[store.current_question]["text"]
+        question.buttons = store.questions[store.current_question]["buttons"]
+        question.answers = store.questions[store.current_question]["answers"]
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=config.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-        print(question.check())
+        print(f"call.message: {call.message}")
+        # print(question.check())
 
 
-bot.infinity_polling()
+if __name__ == "__main__":
+    bot.infinity_polling()
