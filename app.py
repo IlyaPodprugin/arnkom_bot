@@ -10,7 +10,6 @@ bot = telebot.TeleBot(os.environ.get("BOT_TOKEN"), parse_mode="HTML")
 
 
 class Store:
-    messages = []
     questions = [
         {
             "text": "",
@@ -154,8 +153,8 @@ Keyboard components: {self.keyboard.keyboard}
 Current question: {store.current_question}
 ---------------------------------------------------------------\n""")
 
-    def send_generated_message(self):
-        bot.send_message(store.chat_id, self.text, reply_markup=self.keyboard)
+    def send_generated_message(self, chat_id):
+        bot.send_message(chat_id, self.text, reply_markup=self.keyboard)
 
 
 store = Store()
@@ -164,104 +163,240 @@ question = Question("select",
                     store.questions[store.current_question]["buttons"],
                     store.questions[store.current_question]["answers"])
 
-# print(question.check())
-
 
 @bot.message_handler(commands=["start"])
 def start_msg(message):
-    store.current_question = 0
-    store.chat_id = message.chat.id
-    store.user_name = f"{message.chat.first_name} {message.chat.last_name}"
+    chat_id = message.chat.id
+    user_name = f"{message.chat.first_name} {message.chat.last_name}"
     greeting = f"""
-Здравствуйте, {store.user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
+Здравствуйте, {user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
 Ответьте на <b>5 вопросов</b> и менеджер подберёт <b>идеально подходящее Вам</b> предложение.\n
 Если готовы - <b>нажмите на кнопку</b>.
     """
 
     question.text = greeting
-    question.buttons = store.questions[store.current_question]["buttons"]
+    question.buttons = store.questions[0]["buttons"]
     question.answers = []
     question.call_data = []
     question.question_type = "select"
     question.keyboard = question.generate_keyboard()
-    question.send_generated_message()
-    print(f"message: {message}")
-    # print(question.check())
+    question.send_generated_message(chat_id)
+    # print(f"message: {message}")
+    print(question.check())
+    bot.register_next_step_handler_by_chat_id(message.chat.id, process_0_question)
 
 
-@bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["buttons"])
-def buttons_callback(call):
-    if call.data == "Назад":
-        store.current_question -= 1
-    elif call.data == "Поехали":
-        store.current_question += 1
-    elif call.data == "Вперёд":
-        if store.user_answers[store.current_question] == "":
-            bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
-            return
-        else:
-            bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
-                                  text=config.generate_goodbye())
-            print(f"call.message: {call.message}")
-            # print(question.check())
-            return
+@bot.callback_query_handler(lambda call: call.data in store.questions[0]["buttons"])
+def process_0_question(call):
+    question.text = store.questions[1]["text"]
+    question.answers = store.questions[1]["answers"]
+    question.buttons = store.questions[1]["buttons"]
+    question.keyboard = question.generate_keyboard()
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=question.text, reply_markup=question.keyboard)
+    bot.register_next_step_handler_by_chat_id(call.message.chat.id, process_1_question)
 
-    if store.current_question != 0:
-        question.question_type = "select"
-        question.call_data = store.user_answers[store.current_question]
-        question.text = store.questions[store.current_question]["text"]
-        question.buttons = store.questions[store.current_question]["buttons"]
-        question.answers = store.questions[store.current_question]["answers"]
-        question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
-                              text=question.text, reply_markup=question.keyboard)
-        print(f"call.message: {call.message}")
-        # print(question.check())
+
+@bot.callback_query_handler(lambda call: call.data in store.questions[1]["answers"]
+                            or call.data in store.questions[1]["buttons"])
+def process_1_question(call):
+    if call.data in store.questions[1]["buttons"]:
+        start_msg(call.message)
     else:
-        question.text = config.greeting
-        question.buttons = store.questions[store.current_question]["buttons"]
-        question.answers = []
-        question.call_data = []
-        question.question_type = "select"
+        store.user_answers[1] = call.data
+
+        question.text = store.questions[2]["text"]
+        question.answers = store.questions[2]["answers"]
+        question.buttons = store.questions[2]["buttons"]
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-        print(f"call.message: {call.message}")
-        # print(question.check())
+
+        bot.register_next_step_handler_by_chat_id(call.message.chat.id, process_2_question)
 
 
-@bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["answers"])
-def answers_callback(call):
-    if store.current_question == 5:
+@bot.callback_query_handler(lambda call: call.data in store.questions[2]["answers"]
+                            or call.data in store.questions[2]["buttons"])
+def process_2_question(call):
+    if call.data in store.questions[2]["buttons"]:
+        process_0_question(call)
+    else:
+        store.user_answers[2] = call.data
 
+        question.text = store.questions[3]["text"]
+        question.answers = store.questions[3]["answers"]
+        question.buttons = store.questions[3]["buttons"]
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+
+        bot.register_next_step_handler_by_chat_id(call.message.chat.id, process_3_question)
+
+
+@bot.callback_query_handler(lambda call: call.data in store.questions[3]["answers"]
+                            or call.data in store.questions[3]["buttons"])
+def process_3_question(call):
+    if call.data in store.questions[3]["buttons"]:
+        process_1_question(call)
+    else:
+        store.user_answers[3] = call.data
+
+        question.text = store.questions[4]["text"]
+        question.answers = store.questions[4]["answers"]
+        question.buttons = store.questions[4]["buttons"]
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+
+        bot.register_next_step_handler_by_chat_id(call.message.chat.id, process_4_question)
+
+
+@bot.callback_query_handler(lambda call: call.data in store.questions[4]["answers"]
+                            or call.data in store.questions[4]["buttons"])
+def process_4_question(call):
+    if call.data in store.questions[4]["buttons"]:
+        process_2_question(call)
+    else:
+        store.user_answers[4] = call.data
+
+        question.text = store.questions[5]["text"]
+        question.answers = store.questions[5]["answers"]
+        question.buttons = store.questions[5]["buttons"]
+        question.question_type = "checkbox"
+        question.keyboard = question.generate_keyboard()
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=question.text, reply_markup=question.keyboard)
+
+        bot.register_next_step_handler_by_chat_id(call.message.chat.id, process_5_question)
+
+
+@bot.callback_query_handler(lambda call: call.data in store.questions[5]["answers"]
+                            or call.data in store.questions[5]["buttons"])
+def process_5_question(call):
+    if call.data in store.questions[5]["buttons"]:
+        if call.data == "Назад":
+            process_3_question(call)
+        elif call.data == "Вперёд":
+            goodbye = f"""Итак, вот что Вы выбрали:
+            1. <b>Когда?</b> {store.user_answers[1]}
+            2. <b>Площадь?</b> {store.user_answers[2]}
+            3. <b>Этаж?</b> {store.user_answers[3]}
+            4. <b>На какой срок?</b> {store.user_answers[4]}
+            5. <b>Дополнительные параметры?</b>
+            {store.user_answers[5]}\n
+
+            Ваши ответы были отправлены менеджеру. Он уже ищет подходящее Вам предложение.
+            Спасибо за уделённое время, Бот Арнком"""
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=goodbye, reply_markup=None)
+    else:
         # Adding and remove picked and unpicked answers from a list
-        if call.data in store.user_answers[store.current_question]:
-            store.user_answers[store.current_question].remove(call.data)
+        if call.data in store.user_answers[5]:
+            store.user_answers[5].remove(call.data)
         else:
-            store.user_answers[store.current_question].append(call.data)
+            store.user_answers[5].append(call.data)
 
-        question.call_data = store.user_answers[store.current_question]
+        question.call_data = store.user_answers[5]
         question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=question.text, reply_markup=question.keyboard)
-        print(f"call.message: {call.message}")
-    else:
-        store.user_answers[store.current_question] = call.data
-        store.current_question += 1
-        if store.current_question == 5:
-            question.question_type = "checkbox"
-        else:
-            question.question_type = "select"
 
-        question.call_data = call.data
-        question.text = store.questions[store.current_question]["text"]
-        question.buttons = store.questions[store.current_question]["buttons"]
-        question.answers = store.questions[store.current_question]["answers"]
-        question.keyboard = question.generate_keyboard()
-        bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
-                              text=question.text, reply_markup=question.keyboard)
-        print(f"call.message: {call.message}")
-        # print(question.check())
+
+# @bot.message_handler(commands=["start"])
+# def start_msg(message):
+#     store.current_question = 0
+#     store.chat_id = message.chat.id
+#     store.user_name = f"{message.chat.first_name} {message.chat.last_name}"
+#     greeting = f"""
+# Здравствуйте, {store.user_name}, я <b>Бот Арнком</b>, Ваш личный помощник.\n
+# Ответьте на <b>5 вопросов</b> и менеджер подберёт <b>идеально подходящее Вам</b> предложение.\n
+# Если готовы - <b>нажмите на кнопку</b>.
+#     """
+#
+#     question.text = greeting
+#     question.buttons = store.questions[store.current_question]["buttons"]
+#     question.answers = []
+#     question.call_data = []
+#     question.question_type = "select"
+#     question.keyboard = question.generate_keyboard()
+#     question.send_generated_message()
+#     print(f"message: {message}")
+#     # print(question.check())
+#
+#
+# @bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["buttons"])
+# def buttons_callback(call):
+#     if call.data == "Назад":
+#         store.current_question -= 1
+#     elif call.data == "Поехали":
+#         store.current_question += 1
+#     elif call.data == "Вперёд":
+#         if store.user_answers[store.current_question] == "":
+#             bot.answer_callback_query(callback_query_id=call.id, text=config.didnt_pick, show_alert=True)
+#             return
+#         else:
+#             bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+#                                   text=config.generate_goodbye())
+#             print(f"call.message: {call.message}")
+#             # print(question.check())
+#             return
+#
+#     if store.current_question != 0:
+#         question.question_type = "select"
+#         question.call_data = store.user_answers[store.current_question]
+#         question.text = store.questions[store.current_question]["text"]
+#         question.buttons = store.questions[store.current_question]["buttons"]
+#         question.answers = store.questions[store.current_question]["answers"]
+#         question.keyboard = question.generate_keyboard()
+#         bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+#                               text=question.text, reply_markup=question.keyboard)
+#         print(f"call.message: {call.message}")
+#         # print(question.check())
+#     else:
+#         question.text = config.greeting
+#         question.buttons = store.questions[store.current_question]["buttons"]
+#         question.answers = []
+#         question.call_data = []
+#         question.question_type = "select"
+#         question.keyboard = question.generate_keyboard()
+#         bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+#                               text=question.text, reply_markup=question.keyboard)
+#         print(f"call.message: {call.message}")
+#         # print(question.check())
+#
+#
+# @bot.callback_query_handler(lambda call: call.data in store.questions[store.current_question]["answers"])
+# def answers_callback(call):
+#     if store.current_question == 5:
+#
+#         # Adding and remove picked and unpicked answers from a list
+#         if call.data in store.user_answers[store.current_question]:
+#             store.user_answers[store.current_question].remove(call.data)
+#         else:
+#             store.user_answers[store.current_question].append(call.data)
+#
+#         question.call_data = store.user_answers[store.current_question]
+#         question.keyboard = question.generate_keyboard()
+#         bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+#                               text=question.text, reply_markup=question.keyboard)
+#         print(f"call.message: {call.message}")
+#     else:
+#         store.user_answers[store.current_question] = call.data
+#         store.current_question += 1
+#         if store.current_question == 5:
+#             question.question_type = "checkbox"
+#         else:
+#             question.question_type = "select"
+#
+#         question.call_data = call.data
+#         question.text = store.questions[store.current_question]["text"]
+#         question.buttons = store.questions[store.current_question]["buttons"]
+#         question.answers = store.questions[store.current_question]["answers"]
+#         question.keyboard = question.generate_keyboard()
+#         bot.edit_message_text(chat_id=store.chat_id, message_id=call.message.message_id,
+#                               text=question.text, reply_markup=question.keyboard)
+#         print(f"call.message: {call.message}")
+#         # print(question.check())
 
 
 if __name__ == "__main__":
